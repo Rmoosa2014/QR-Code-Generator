@@ -3,251 +3,679 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ILLUS QR Studio by Riyas</title>
+    <title>QR CODE STUDIO by Riyas</title>
     
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Libraries -->
+    <!-- External Libraries for Advanced Features -->
     <script src="https://unpkg.com/qr-code-styling@1.5.0/lib/qr-code-styling.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
-        /* Custom scrollbar for better aesthetics */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        :root {
+            --primary-green: #6eb944;
+            --primary-gray: #414042;
+            --bg-light: #f4f4f4;
+            --white: #ffffff;
+            --border: #e0e0e0;
+            --text-muted: #888888;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-light);
+            color: var(--primary-gray);
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px; /* Reduced padding */
+        }
+
+        /* --- Header --- */
+        header {
+            text-align: center;
+            margin-bottom: 15px; /* Reduced margin */
+            flex-shrink: 0;
+        }
+
+        h1 {
+            color: var(--primary-green);
+            font-size: 1.8rem; /* Compact size */
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            margin-bottom: 0;
+            text-transform: uppercase;
+            line-height: 1.2;
+        }
+
+        h1 span {
+            color: var(--primary-green);
+        }
+
+        p.subtitle {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin-top: 2px;
+        }
+
+        /* --- Layout --- */
+        .app-container {
+            max-width: 1000px; /* Slightly tighter width */
+            width: 100%;
+            height: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            overflow: hidden;
+            padding-bottom: 5px;
+        }
+
+        @media (max-width: 900px) {
+            .app-container {
+                grid-template-columns: 1fr;
+                overflow-y: auto;
+                display: block;
+                padding-bottom: 20px;
+            }
+            body {
+                height: auto;
+                overflow-y: auto;
+            }
+        }
+
+        /* --- Cards --- */
+        .card {
+            background: var(--white);
+            border-radius: 12px;
+            padding: 20px; /* Reduced padding */
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            height: 100%;
+        }
+
+        /* Compact content area */
+        .card-content {
+            display: flex;
+            flex-direction: column;
+            gap: 12px; /* Uniform gap between sections */
+            height: 100%;
+            justify-content: space-between; /* Distribute space */
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--bg-light);
+            color: var(--primary-gray);
+            flex-shrink: 0;
+        }
+
+        .card-title {
+            font-size: 1rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        /* --- Form Elements --- */
+        .form-section {
+            /* Removed margin bottom in favor of flex gap in parent */
+        }
+
+        label {
+            display: block;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        input[type="text"], 
+        input[type="url"],
+        input[type="file"] {
+            width: 100%;
+            padding: 8px 10px; /* Compact padding */
+            border: 2px solid var(--bg-light);
+            border-radius: 6px;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            outline: none;
+            color: var(--primary-gray);
+            background: #fff;
+        }
+
+        input[type="text"]:focus, 
+        input[type="url"]:focus {
+            border-color: var(--primary-green);
+        }
+
+        .helper-text {
+            font-size: 0.65rem;
+            color: #aaa;
+            margin-top: 2px;
+            text-align: right;
+        }
+
+        /* --- Custom Checkbox --- */
+        .checkbox-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+            cursor: pointer;
+        }
         
-        /* Smooth transitions */
-        .transition-all { transition-property: all; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 300ms; }
+        input[type="checkbox"] {
+            accent-color: var(--primary-green);
+            width: 14px;
+            height: 14px;
+            cursor: pointer;
+        }
+
+        /* --- Option Grids --- */
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+        }
+
+        .option-btn {
+            padding: 6px 2px;
+            border: 2px solid var(--bg-light);
+            background: var(--white);
+            border-radius: 6px;
+            cursor: pointer;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.75rem;
+            color: #666;
+            transition: all 0.2s;
+            text-transform: capitalize;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .option-btn:hover { border-color: #ddd; }
+        .option-btn.active {
+            border-color: var(--primary-green);
+            background-color: #f0f9eb;
+            color: var(--primary-green);
+        }
+
+        /* --- Color Picker --- */
+        .color-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .color-dot {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: transform 0.2s;
+        }
+        
+        .color-dot:hover { transform: scale(1.1); }
+        .color-dot.active { border-color: var(--primary-gray); transform: scale(1.1); }
+
+        .custom-picker-wrapper {
+            position: relative;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red);
+            border: 2px solid var(--border);
+            cursor: pointer;
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .custom-picker-wrapper::after {
+            content: '+';
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+            text-shadow: 0 1px 1px rgba(0,0,0,0.5);
+        }
+
+        input[type="color"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        /* --- Preview --- */
+        .preview-wrapper {
+            position: relative;
+        }
+
+        .qr-stage {
+            background-image: radial-gradient(#e0e0e0 1px, transparent 1px);
+            background-size: 20px 20px;
+            background-color: #fcfcfc;
+            border-radius: 12px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 15px;
+            position: relative;
+            border: 1px solid var(--bg-light);
+            min-height: 200px; /* Reduced min-height */
+            overflow: hidden;
+        }
+
+        .qr-canvas-container {
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            transition: transform 0.3s;
+            max-width: 90%;
+            max-height: 90%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .qr-canvas-container canvas, 
+        .qr-canvas-container svg {
+            max-width: 100%;
+            max-height: 100%; 
+            /* Let flexbox handle sizing naturally */
+            height: auto;
+            width: auto;
+        }
+
+        .refresh-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #666;
+            z-index: 5;
+        }
+
+        .status-pill {
+            position: absolute;
+            bottom: 10px;
+            background: rgba(240, 249, 235, 0.9);
+            color: var(--primary-green);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            backdrop-filter: blur(2px);
+        }
+
+        /* --- Buttons --- */
+        .btn-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin-top: auto;
+            flex-shrink: 0;
+        }
+
+        .action-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 6px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .action-btn i { margin-bottom: 3px; width: 18px; height: 18px; }
+
+        .btn-primary { background-color: var(--primary-gray); color: white; }
+        .btn-primary:hover { background-color: #2d2d2d; }
+
+        .btn-secondary { background-color: var(--white); border: 2px solid var(--bg-light); color: var(--primary-gray); }
+        .btn-secondary:hover { border-color: var(--primary-gray); }
+
+        .btn-danger { background-color: #fff5f5; color: #c53030; border: 2px solid #fff5f5; }
+        .btn-danger:hover { border-color: #feb2b2; }
+
+        .btn-label { font-size: 0.6rem; opacity: 0.7; }
+        .btn-text { font-weight: 700; font-size: 0.8rem; }
+
+        /* Compact Logo Inputs */
+        .compact-logo-inputs {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 6px;
+            align-items: center;
+        }
+        .compact-or { font-size: 0.65rem; color: #ccc; font-weight: 600; }
+        
     </style>
 </head>
-<body class="min-h-screen bg-gray-50 text-gray-800 font-sans">
+<body>
 
-    <div class="p-4 md:p-8">
-        <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
-            
-            <!-- Header -->
-            <div class="lg:col-span-12 mb-4 text-center">
-                <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 mb-2">
-                    ILLUS QR Code Studio
-                </h1>
-                <p class="text-gray-500">Generate stylish QR codes with custom logos and images</p>
+    <header>
+        <h1>LS <span>QR CODE STUDIO</span></h1>
+        <p class="subtitle">Generate custome QR codes with your brand logos or custom images</p>
+    </header>
+
+    <div class="app-container">
+        
+        <!-- LEFT: Configuration -->
+        <div class="card">
+            <div class="card-header">
+                <i data-lucide="sliders-horizontal" width="18"></i>
+                <span class="card-title">Configuration</span>
             </div>
 
-            <!-- Left Column: Controls -->
-            <div class="lg:col-span-5 space-y-6">
+            <!-- Compact Content Wrapper -->
+            <div class="card-content">
                 
-                <!-- Link Input Section -->
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                    <h2 class="text-lg font-semibold flex items-center gap-2 mb-4 text-gray-700">
-                        <i data-lucide="link" class="text-blue-500 w-5 h-5"></i>
-                        Content
-                    </h2>
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-600 mb-1">Target Website URL</label>
-                            <input
-                                type="text"
-                                id="urlInput"
-                                placeholder="https://example.com"
-                                value="Enjoy your new QR"
-                                class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
-                            />
+                <!-- URL -->
+                <div class="form-section">
+                    <label>Target URL</label>
+                    <div class="input-wrapper">
+                        <input type="text" id="urlInput" value="Enjoy the new QR" placeholder="https://example.com">
+                    </div>
+                </div>
+
+                <!-- Logo (Compact) -->
+                <div class="form-section">
+                    <label>Center Logo</label>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" id="useFavicon">
+                        <span style="font-size: 0.8rem; color: var(--primary-gray);">Auto-fetch</span>
+                    </div>
+
+                    <div id="customLogoGroup" style="opacity: 1; pointer-events: auto; transition: opacity 0.3s;">
+                        <div class="compact-logo-inputs">
+                            <input type="url" id="logoUrlInput" placeholder="Image URL">
+                            <span class="compact-or">OR</span>
+                            <input type="file" id="logoFileInput" accept="image/*" style="padding: 6px;">
                         </div>
                     </div>
                 </div>
 
-                <!-- Logo Section -->
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                    <h2 class="text-lg font-semibold flex items-center gap-2 mb-4 text-gray-700">
-                        <i data-lucide="image" class="text-purple-500 w-5 h-5"></i>
-                        Center Logo
-                    </h2>
-                    <div class="space-y-4">
-                        <div class="flex items-center gap-2 mb-2">
-                            <input
-                                type="checkbox"
-                                id="useFavicon"
-                                checked
-                                class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
-                            />
-                            <label for="useFavicon" class="text-sm text-gray-600 select-none cursor-pointer">
-                                Auto-fetch website logo (Favicon)
-                            </label>
-                        </div>
-                        
-                        <div id="customLogoContainer" class="transition-opacity duration-300 opacity-50 pointer-events-none">
-                            <label class="block text-sm font-medium text-gray-600 mb-1">Or custom Image URL</label>
-                            <input
-                                type="text"
-                                id="logoUrlInput"
-                                placeholder="https://imgur.com/..."
-                                class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none transition-all"
-                            />
-                            <p class="text-xs text-gray-400 mt-1">Note: Image URL must allow CORS access.</p>
+                <!-- Patterns -->
+                <div class="form-section">
+                    <label>Pattern Style</label>
+                    <div class="options-grid" id="dotTypeContainer">
+                        <!-- JS populated -->
+                    </div>
+                </div>
+
+                <!-- Corners -->
+                <div class="form-section">
+                    <label>Corner Style</label>
+                    <div class="options-grid" id="cornerTypeContainer">
+                        <!-- JS populated -->
+                    </div>
+                </div>
+
+                <!-- Color -->
+                <div class="form-section">
+                    <label>Primary Color</label>
+                    <div class="color-row">
+                        <div id="colorPresets" style="display: contents;"></div>
+                        <div class="custom-picker-wrapper" title="Custom Color">
+                            <input type="color" id="colorPicker" value="#6eb944">
                         </div>
                     </div>
                 </div>
 
-                <!-- Style Controls -->
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                    <h2 class="text-lg font-semibold flex items-center gap-2 mb-4 text-gray-700">
-                        <i data-lucide="settings" class="text-orange-500 w-5 h-5"></i>
-                        Customization
-                    </h2>
-                    
-                    <div class="space-y-6">
-                        <!-- Dot Style -->
-                        <div>
-                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Pattern Style</label>
-                            <div class="grid grid-cols-3 gap-2" id="dotTypeContainer">
-                                <!-- Generated by JS -->
-                            </div>
-                        </div>
+            </div>
+        </div>
 
-                        <!-- Corner Style -->
-                        <div>
-                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Corner Style</label>
-                            <div class="flex gap-2" id="cornerTypeContainer">
-                                <!-- Generated by JS -->
-                            </div>
-                        </div>
-
-                        <!-- Colors -->
-                        <div>
-                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Primary Color</label>
-                            <div class="flex flex-wrap gap-2 mb-3" id="colorContainer">
-                                <!-- Generated by JS -->
-                                <div class="relative">
-                                    <input 
-                                        type="color" 
-                                        id="colorPicker"
-                                        value="#000000"
-                                        class="w-8 h-8 rounded-full overflow-hidden border-0 p-0 cursor-pointer"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+        <!-- RIGHT: Preview -->
+        <div class="card preview-wrapper">
+            <div class="card-header">
+                <i data-lucide="eye" width="18"></i>
+                <span class="card-title">Preview</span>
             </div>
 
-            <!-- Right Column: Preview & Download -->
-            <div class="lg:col-span-7 flex flex-col">
-                <div class="sticky top-8 space-y-6">
+            <div class="card-content">
+                <div class="qr-stage">
+                    <button class="refresh-btn" onclick="forceRefresh()" title="Redraw">
+                        <i data-lucide="refresh-cw" width="14"></i>
+                    </button>
                     
-                    <!-- Preview Card -->
-                    <div class="bg-white p-8 rounded-3xl shadow-xl border border-gray-100 flex flex-col items-center justify-center min-h-[500px] relative overflow-hidden">
-                        <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"></div>
-                        
-                        <div class="absolute top-4 right-4 z-10">
-                            <button 
-                                id="refreshBtn"
-                                class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
-                                title="Refresh Preview"
-                            >
-                                <i data-lucide="refresh-cw" class="w-5 h-5"></i>
-                            </button>
-                        </div>
-
-                        <!-- The QR Code Container -->
-                        <div 
-                            id="qr-container" 
-                            class="qr-container bg-white p-4 rounded-xl shadow-inner border border-gray-50 transition-all duration-300 transform hover:scale-[1.02] flex items-center justify-center min-h-[300px] min-w-[300px]"
-                        ></div>
-
-                        <div class="mt-8 text-center max-w-md">
-                            <p id="urlDisplay" class="text-sm text-gray-400 break-all font-mono mb-2">Enjoy your new QR</p>
-                            <div id="statusBadge" class="inline-block px-3 py-1 bg-green-50 text-green-700 text-xs font-medium rounded-full">
-                                Ready to scan
-                            </div>
-                        </div>
+                    <div class="qr-canvas-container" id="qr-container">
+                        <!-- QR Code renders here -->
                     </div>
 
-                    <!-- Download Options -->
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <button onclick="handleDownload('png')" class="flex items-center justify-center gap-2 bg-gray-900 hover:bg-gray-800 text-white px-6 py-4 rounded-xl transition-all shadow-lg shadow-gray-200 active:scale-95 group">
-                            <svg class="w-8 h-8 text-white opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                            <div class="text-left">
-                                <div class="text-xs text-gray-400 font-medium">Download as</div>
-                                <div class="font-bold">PNG</div>
-                            </div>
-                        </button>
+                    <div class="status-pill" id="statusPill">Ready to Scan</div>
+                </div>
 
-                        <button onclick="handleDownload('svg')" class="flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-gray-900 border border-gray-200 px-6 py-4 rounded-xl transition-all shadow-lg shadow-gray-100 active:scale-95 group">
-                            <svg class="w-8 h-8 text-gray-700 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
-                            </svg>
-                            <div class="text-left">
-                                <div class="text-xs text-gray-500 font-medium">Download as</div>
-                                <div class="font-bold">SVG</div>
-                            </div>
-                        </button>
-
-                        <button onclick="handleDownload('pdf')" class="flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-900 border border-red-100 px-6 py-4 rounded-xl transition-all shadow-lg shadow-red-50 active:scale-95 group">
-                            <svg class="w-8 h-8 text-red-600 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                            </svg>
-                            <div class="text-left">
-                                <div class="text-xs text-red-400 font-medium">Download as</div>
-                                <div class="font-bold">PDF</div>
-                            </div>
-                        </button>
-                    </div>
-
+                <div class="btn-grid">
+                    <button class="action-btn btn-primary" onclick="handleDownload('png')">
+                        <i data-lucide="image"></i>
+                        <span class="btn-label">Download</span>
+                        <span class="btn-text">PNG</span>
+                    </button>
+                    <button class="action-btn btn-secondary" onclick="handleDownload('svg')">
+                        <i data-lucide="file-code"></i>
+                        <span class="btn-label">Download</span>
+                        <span class="btn-text">SVG</span>
+                    </button>
+                    <button class="action-btn btn-danger" onclick="handleDownload('pdf')">
+                        <i data-lucide="file-text"></i>
+                        <span class="btn-label">Save as</span>
+                        <span class="btn-text">PDF</span>
+                    </button>
                 </div>
             </div>
         </div>
+
     </div>
 
+    <!-- APP LOGIC -->
     <script>
         // --- State Management ---
-        let state = {
-            url: 'Enjoy your new QR',
+        const state = {
+            url: 'Enjoy the new QR',
             logoUrl: '',
-            useFavicon: true,
+            useFavicon: false,
             dotType: 'dots',
-            dotColor: '#000000',
+            dotColor: '#6eb944', 
             cornerType: 'extra-rounded',
-            cornerColor: '#000000',
+            cornerColor: '#6eb944',
             bgColor: '#ffffff'
         };
 
-        let qrCodeInstance = null;
-        let isDownloading = false;
+        let qrCode = null;
         let debounceTimer;
 
-        // --- Elements ---
-        const urlInput = document.getElementById('urlInput');
-        const logoUrlInput = document.getElementById('logoUrlInput');
-        const useFaviconCheckbox = document.getElementById('useFavicon');
-        const customLogoContainer = document.getElementById('customLogoContainer');
-        const qrContainer = document.getElementById('qr-container');
-        const urlDisplay = document.getElementById('urlDisplay');
-        const statusBadge = document.getElementById('statusBadge');
-        const colorPicker = document.getElementById('colorPicker');
-        const refreshBtn = document.getElementById('refreshBtn');
-
-        // --- Configuration Constants ---
-        const presetColors = [
-            { name: 'Black', hex: '#000000' },
-            { name: 'Blue', hex: '#2563EB' },
-            { name: 'Purple', hex: '#7C3AED' },
-            { name: 'Pink', hex: '#DB2777' },
-            { name: 'Teal', hex: '#0D9488' },
-            { name: 'Orange', hex: '#EA580C' },
-        ];
-        const dotTypes = ['dots', 'rounded', 'square', 'classy', 'classy-rounded', 'extra-rounded'];
+        // --- Config Constants ---
+        const dotTypes = ['dots', 'rounded', 'classy', 'classy-rounded', 'square', 'extra-rounded'];
         const cornerTypes = ['square', 'extra-rounded', 'dot'];
+        const presetColors = ['#6eb944', '#414042', '#000000', '#2563EB', '#DB2777'];
 
-        // --- Helper: Convert Image to Base64 ---
+        // --- Elements ---
+        const els = {
+            url: document.getElementById('urlInput'),
+            useFavicon: document.getElementById('useFavicon'),
+            customLogoGroup: document.getElementById('customLogoGroup'),
+            logoUrl: document.getElementById('logoUrlInput'),
+            logoFile: document.getElementById('logoFileInput'),
+            container: document.getElementById('qr-container'),
+            status: document.getElementById('statusPill'),
+            colorPicker: document.getElementById('colorPicker')
+        };
+
+        // --- Initialization ---
+        window.onload = () => {
+            lucide.createIcons();
+            
+            els.colorPicker.addEventListener('input', (e) => {
+                setColor(e.target.value);
+            });
+
+            renderUIOptions();
+            
+            // Init QR Engine
+            qrCode = new QRCodeStyling({
+                width: 300,
+                height: 300,
+                type: 'svg',
+                data: state.url,
+                dotsOptions: { color: state.dotColor, type: state.dotType },
+                backgroundOptions: { color: state.bgColor },
+                imageOptions: { crossOrigin: 'anonymous', margin: 10 },
+                cornersSquareOptions: { type: state.cornerType, color: state.cornerColor }
+            });
+
+            // Initial Render
+            qrCode.append(els.container);
+            updateQR();
+        };
+
+        // --- Core Update Logic ---
+        async function updateQR() {
+            if (!qrCode) return;
+
+            let activeLogo = undefined;
+            if (state.useFavicon && state.url && state.url.includes('.')) {
+                try {
+                    const domain = new URL(state.url).hostname;
+                    activeLogo = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+                } catch(e) {}
+            } else if (state.logoUrl) {
+                activeLogo = state.logoUrl;
+            }
+
+            const base64Logo = activeLogo ? await convertImageToBase64(activeLogo) : undefined;
+
+            qrCode.update({
+                data: state.url,
+                image: base64Logo,
+                dotsOptions: { color: state.dotColor, type: state.dotType },
+                cornersSquareOptions: { type: state.cornerType, color: state.cornerColor },
+                backgroundOptions: { color: state.bgColor }
+            });
+        }
+
+        function forceRefresh() {
+            els.container.innerHTML = '';
+            qrCode.append(els.container);
+        }
+
+        // --- UI Rendering ---
+        function renderUIOptions() {
+            const dotContainer = document.getElementById('dotTypeContainer');
+            dotContainer.innerHTML = dotTypes.map(type => 
+                `<div class="option-btn ${state.dotType === type ? 'active' : ''}" 
+                      onclick="setOption('dotType', '${type}')">
+                    ${type.replace('-', ' ')}
+                 </div>`
+            ).join('');
+
+            const cornerContainer = document.getElementById('cornerTypeContainer');
+            cornerContainer.innerHTML = cornerTypes.map(type => 
+                `<div class="option-btn ${state.cornerType === type ? 'active' : ''}" 
+                      onclick="setOption('cornerType', '${type}')">
+                    ${type.replace('-', ' ')}
+                 </div>`
+            ).join('');
+
+            const presetsContainer = document.getElementById('colorPresets');
+            presetsContainer.innerHTML = presetColors.map(color => 
+                `<div class="color-dot ${state.dotColor === color ? 'active' : ''}" 
+                      style="background-color: ${color};"
+                      onclick="setColor('${color}')">
+                 </div>`
+            ).join('');
+        }
+
+        // --- Setters ---
+        window.setOption = (key, value) => {
+            state[key] = value;
+            renderUIOptions();
+            updateQR();
+        };
+
+        window.setColor = (color) => {
+            state.dotColor = color;
+            state.cornerColor = color;
+            els.colorPicker.value = color; 
+            renderUIOptions();
+            updateQR();
+        };
+
+        // --- Event Listeners ---
+        els.url.addEventListener('input', (e) => {
+            clearTimeout(debounceTimer);
+            state.url = e.target.value;
+            debounceTimer = setTimeout(updateQR, 300);
+        });
+
+        els.useFavicon.addEventListener('change', (e) => {
+            state.useFavicon = e.target.checked;
+            els.customLogoGroup.style.opacity = state.useFavicon ? '0.5' : '1';
+            els.customLogoGroup.style.pointerEvents = state.useFavicon ? 'none' : 'auto';
+            updateQR();
+        });
+
+        els.logoUrl.addEventListener('input', (e) => {
+            state.logoUrl = e.target.value;
+            updateQR();
+        });
+
+        els.logoFile.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    state.logoUrl = evt.target.result;
+                    updateQR();
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // --- Utilities ---
         async function convertImageToBase64(url) {
-            if (!url) return undefined;
+            if (url.startsWith('data:')) return url;
             try {
                 const response = await fetch(url);
                 const blob = await response.blob();
@@ -257,250 +685,74 @@
                     reader.readAsDataURL(blob);
                 });
             } catch (error) {
-                console.warn("Image conversion failed (CORS?):", error);
-                return url; // Fallback
+                return url;
             }
         }
 
-        // --- Helper: Get QR Options ---
-        function getQrOptions(width, height, data, image) {
-            return {
-                width: width,
-                height: height,
-                type: 'svg',
-                data: data,
-                image: image,
-                dotsOptions: {
-                    color: state.dotColor,
-                    type: state.dotType
-                },
-                backgroundOptions: {
-                    color: state.bgColor,
-                },
-                imageOptions: {
-                    crossOrigin: 'anonymous',
-                    margin: 10
-                },
-                cornersSquareOptions: {
-                    type: state.cornerType,
-                    color: state.cornerColor
-                }
-            };
-        }
-
-        // --- Main Update Function ---
-        async function updateQR() {
-            if (!qrCodeInstance) return;
-
-            const effectiveUrl = state.url || 'Enjoy your new QR';
-            let activeLogoUrl = undefined;
-
-            // Logic for logo selection
-            if (state.useFavicon && !state.logoUrl && effectiveUrl && effectiveUrl.includes('http')) {
-                try {
-                    const urlObj = new URL(effectiveUrl);
-                    if (urlObj.hostname.includes('.')) {
-                        activeLogoUrl = `https://www.google.com/s2/favicons?domain=${urlObj.hostname}&sz=64`;
-                    }
-                } catch (e) { /* ignore */ }
-            } else if (state.logoUrl && state.logoUrl.startsWith('http')) {
-                activeLogoUrl = state.logoUrl;
-            }
-
-            // Update UI Text
-            urlDisplay.textContent = effectiveUrl.length > 50 ? effectiveUrl.substring(0, 50) + '...' : effectiveUrl;
-
-            // Convert Image
-            const base64Image = activeLogoUrl ? await convertImageToBase64(activeLogoUrl) : undefined;
-
-            // Update QR Instance
-            qrCodeInstance.update(getQrOptions(300, 300, effectiveUrl, base64Image));
-
-            // Failsafe: Re-append if missing
-            if (qrContainer.innerHTML === '') {
-                qrCodeInstance.append(qrContainer);
-            }
-        }
-
-        // --- Initialization ---
-        function init() {
-            // Render Buttons
-            renderStyleButtons();
-
-            // Initialize QR Library
-            qrCodeInstance = new QRCodeStyling(getQrOptions(300, 300, state.url, undefined));
-            qrCodeInstance.append(qrContainer);
-
-            // Trigger Icons
-            lucide.createIcons();
-
-            // Initial Update
-            updateQR();
-        }
-
-        // --- UI Rendering Helpers ---
-        function renderStyleButtons() {
-            // Dot Types
-            const dotContainer = document.getElementById('dotTypeContainer');
-            dotContainer.innerHTML = dotTypes.map(type => `
-                <button onclick="setDotType('${type}')" 
-                    class="px-2 py-2 text-xs rounded-md border capitalize transition-all ${state.dotType === type ? 'bg-blue-50 border-blue-500 text-blue-700 font-medium' : 'bg-gray-50 border-transparent text-gray-600 hover:bg-gray-100'}">
-                    ${type.replace('-', ' ')}
-                </button>
-            `).join('');
-
-            // Corner Types
-            const cornerContainer = document.getElementById('cornerTypeContainer');
-            cornerContainer.innerHTML = cornerTypes.map(type => `
-                <button onclick="setCornerType('${type}')" 
-                    class="flex-1 px-2 py-2 text-xs rounded-md border capitalize transition-all ${state.cornerType === type ? 'bg-purple-50 border-purple-500 text-purple-700 font-medium' : 'bg-gray-50 border-transparent text-gray-600 hover:bg-gray-100'}">
-                    ${type.replace('-', ' ')}
-                </button>
-            `).join('');
-
-            // Colors
-            const colorContainer = document.getElementById('colorContainer');
-            // Remove old buttons first (keeping the picker)
-            Array.from(colorContainer.children).forEach(child => {
-                if(!child.querySelector('input')) child.remove();
-            });
-            
-            const buttonsHTML = presetColors.map(color => `
-                <button onclick="setColor('${color.hex}')" 
-                    class="w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${state.dotColor === color.hex ? 'border-gray-400 ring-2 ring-offset-2 ring-gray-200' : 'border-transparent'}"
-                    style="background-color: ${color.hex}"
-                    title="${color.name}">
-                </button>
-            `).join('');
-            
-            colorContainer.insertAdjacentHTML('afterbegin', buttonsHTML);
-        }
-
-        // --- Event Setters (exposed to window) ---
-        window.setDotType = (type) => {
-            state.dotType = type;
-            renderStyleButtons();
-            updateQR();
-        };
-
-        window.setCornerType = (type) => {
-            state.cornerType = type;
-            renderStyleButtons();
-            updateQR();
-        };
-
-        window.setColor = (hex) => {
-            state.dotColor = hex;
-            state.cornerColor = hex;
-            colorPicker.value = hex;
-            renderStyleButtons();
-            updateQR();
-        };
-
-        // --- Event Listeners ---
-        
-        // URL Input with Debounce
-        urlInput.addEventListener('input', (e) => {
-            clearTimeout(debounceTimer);
-            state.url = e.target.value;
-            debounceTimer = setTimeout(updateQR, 300);
-        });
-
-        // Logo URL Input
-        logoUrlInput.addEventListener('input', (e) => {
-            state.logoUrl = e.target.value;
-            if(state.logoUrl) {
-                state.useFavicon = false;
-                useFaviconCheckbox.checked = false;
-                customLogoContainer.classList.remove('opacity-50', 'pointer-events-none');
-            }
-            updateQR();
-        });
-
-        // Favicon Checkbox
-        useFaviconCheckbox.addEventListener('change', (e) => {
-            state.useFavicon = e.target.checked;
-            if (state.useFavicon) {
-                customLogoContainer.classList.add('opacity-50', 'pointer-events-none');
-            } else {
-                customLogoContainer.classList.remove('opacity-50', 'pointer-events-none');
-            }
-            updateQR();
-        });
-
-        // Color Picker
-        colorPicker.addEventListener('input', (e) => {
-            setColor(e.target.value);
-        });
-
-        // Refresh Button
-        refreshBtn.addEventListener('click', () => {
-            qrContainer.innerHTML = '';
-            qrCodeInstance.append(qrContainer);
-            updateQR();
-        });
-
-        // --- Download Handler ---
+        // --- Downloads ---
         window.handleDownload = async (format) => {
-            if (isDownloading) return;
-            isDownloading = true;
-            statusBadge.textContent = "Generating High-Res File...";
-            statusBadge.className = "inline-block px-3 py-1 bg-yellow-50 text-yellow-700 text-xs font-medium rounded-full";
+            els.status.innerText = "Generating...";
+            els.status.style.background = "#fff3cd";
+            els.status.style.color = "#856404";
 
-            const effectiveUrl = state.url || 'Enjoy your new QR';
-            let activeLogoUrl = undefined;
-            if (state.useFavicon && !state.logoUrl && effectiveUrl && effectiveUrl.includes('http')) {
+            let activeLogo = undefined;
+            if (state.useFavicon && state.url && state.url.includes('.')) {
                 try {
-                    const urlObj = new URL(effectiveUrl);
-                    if (urlObj.hostname.includes('.')) activeLogoUrl = `https://www.google.com/s2/favicons?domain=${urlObj.hostname}&sz=64`;
+                    const domain = new URL(state.url).hostname;
+                    activeLogo = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
                 } catch(e) {}
             } else if (state.logoUrl) {
-                activeLogoUrl = state.logoUrl;
+                activeLogo = state.logoUrl;
             }
+            const base64Logo = activeLogo ? await convertImageToBase64(activeLogo) : undefined;
 
-            const base64Image = await convertImageToBase64(activeLogoUrl);
-
-            // Create High-Res Instance (2000px)
-            const downloadInstance = new QRCodeStyling(getQrOptions(2000, 2000, effectiveUrl, base64Image));
+            const dlQr = new QRCodeStyling({
+                width: 2000,
+                height: 2000,
+                type: 'svg',
+                data: state.url,
+                image: base64Logo,
+                dotsOptions: { color: state.dotColor, type: state.dotType },
+                backgroundOptions: { color: state.bgColor },
+                cornersSquareOptions: { type: state.cornerType, color: state.cornerColor },
+                imageOptions: { crossOrigin: 'anonymous', margin: 20 }
+            });
 
             try {
                 if (format === 'pdf') {
-                    const blob = await downloadInstance.getRawData('png');
+                    const blob = await dlQr.getRawData('png');
                     const reader = new FileReader();
                     reader.readAsDataURL(blob);
                     reader.onloadend = () => {
                         const { jsPDF } = window.jspdf;
                         const doc = new jsPDF();
-                        doc.text("Scan this QR Code", 105, 40, { align: "center" });
+                        doc.setFont("helvetica", "bold");
+                        doc.text("Scan QR Code", 105, 40, { align: "center" });
                         doc.addImage(reader.result, 'PNG', 55, 50, 100, 100); 
-                        doc.text(effectiveUrl.substring(0, 50) + (effectiveUrl.length > 50 ? '...' : ''), 105, 160, { align: "center", maxWidth: 180 });
-                        doc.save("qrcode.pdf");
-                        finishDownload();
+                        
+                        doc.setFont("helvetica", "normal");
+                        doc.setFontSize(10);
+                        doc.text(state.url.substring(0, 60), 105, 160, { align: "center" });
+                        
+                        doc.save("mhg-qrcode.pdf");
+                        resetStatus();
                     };
                 } else {
-                    await downloadInstance.download({ name: "qrcode", extension: format });
-                    finishDownload();
+                    await dlQr.download({ name: "mhg-qrcode", extension: format });
+                    resetStatus();
                 }
-            } catch (err) {
-                console.error(err);
-                alert("Download failed. If using a custom logo, ensure it allows CORS.");
-                finishDownload();
+            } catch (e) {
+                alert("Download error. Check logo CORS permissions.");
+                resetStatus();
             }
         };
 
-        function finishDownload() {
-            isDownloading = false;
-            statusBadge.textContent = "Ready to scan";
-            statusBadge.className = "inline-block px-3 py-1 bg-green-50 text-green-700 text-xs font-medium rounded-full";
+        function resetStatus() {
+            els.status.innerText = "Ready to Scan";
+            els.status.style.background = "#f0f9eb";
+            els.status.style.color = "#6eb944";
         }
-
-        // Start App
-        // Use a slight delay to ensure libraries load if using local file, 
-        // though script tags usually block.
-        window.onload = init;
 
     </script>
 </body>
 </html>
-
-
