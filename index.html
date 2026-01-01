@@ -1,0 +1,533 @@
+import React, { useState, useEffect, useRef } from 'react';
+
+// Icons using lucide-react
+import { Download, Link, Image as ImageIcon, Settings, RefreshCw, FileText, FileImage } from 'lucide-react';
+
+// Hook to debounce values (prevents rapid updates while typing)
+function useDebounce(value, delay) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+  return debouncedValue;
+}
+
+// Helper to load external scripts dynamically
+const useScript = (src) => {
+  const [status, setStatus] = useState(src ? 'loading' : 'idle');
+
+  useEffect(() => {
+    if (!src) {
+      setStatus('idle');
+      return;
+    }
+
+    let script = document.querySelector(`script[src="${src}"]`);
+
+    if (!script) {
+      script = document.createElement('script');
+      script.src = src;
+      script.async = true;
+      script.setAttribute('data-status', 'loading');
+      document.body.appendChild(script);
+
+      const setAttributeFromEvent = (event) => {
+        script.setAttribute('data-status', event.type === 'load' ? 'ready' : 'error');
+        setStatus(event.type === 'load' ? 'ready' : 'error');
+      };
+
+      script.addEventListener('load', setAttributeFromEvent);
+      script.addEventListener('error', setAttributeFromEvent);
+    } else {
+      setStatus(script.getAttribute('data-status'));
+    }
+
+    const setStateFromEvent = (event) => {
+      setStatus(event.type === 'load' ? 'ready' : 'error');
+    };
+
+    script.addEventListener('load', setStateFromEvent);
+    script.addEventListener('error', setStateFromEvent);
+
+    return () => {
+      if (script) {
+        script.removeEventListener('load', setStateFromEvent);
+        script.removeEventListener('error', setStateFromEvent);
+      }
+    };
+  }, [src]);
+
+  return status;
+};
+
+// Helper: Convert Image URL to Base64 to ensure embedding in SVG
+const convertImageToBase64 = async (url) => {
+    if (!url) return undefined;
+    try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.readAsDataURL(blob);
+        });
+    } catch (error) {
+        console.warn("Failed to convert image to base64 (CORS might be blocking it). Falling back to URL.", error);
+        return url; // Fallback to original URL if conversion fails
+    }
+};
+
+export default function App() {
+  // Load QRCodeStyling and jsPDF libraries
+  const qrScriptStatus = useScript('https://unpkg.com/qr-code-styling@1.5.0/lib/qr-code-styling.js');
+  const pdfScriptStatus = useScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+
+  // Updated Default Text
+  const [url, setUrl] = useState('Enjoy your new QR');
+  const debouncedUrl = useDebounce(url, 300);
+
+  const [logoUrl, setLogoUrl] = useState('');
+  const [useFavicon, setUseFavicon] = useState(true);
+  
+  // Styling State
+  const [dotType, setDotType] = useState('dots'); 
+  const [dotColor, setDotColor] = useState('#000000');
+  const [bgColor, setBgColor] = useState('#ffffff');
+  const [cornerType, setCornerType] = useState('extra-rounded');
+  const [cornerColor, setCornerColor] = useState('#000000');
+
+  const qrRef = useRef(null);
+  const qrCodeInstance = useRef(null);
+  const [isMounted, setIsMounted] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  // Helper to generate options object to avoid code duplication
+  // We pass 'image' explicitly because calculating base64 is async
+  const getQrOptions = (width, height, data, image) => ({
+    width: width,
+    height: height,
+    type: 'svg',
+    data: data,
+    image: image,
+    dotsOptions: {
+      color: dotColor,
+      type: dotType
+    },
+    backgroundOptions: {
+      color: bgColor,
+    },
+    imageOptions: {
+      crossOrigin: 'anonymous',
+      margin: 10
+    },
+    cornersSquareOptions: {
+      type: cornerType,
+      color: cornerColor
+    }
+  });
+
+  // 1. INITIALIZATION EFFECT (Runs Once)
+  useEffect(() => {
+    if (qrScriptStatus === 'ready' && !qrCodeInstance.current) {
+      // @ts-ignore
+      qrCodeInstance.current = new window.QRCodeStyling(
+        getQrOptions(300, 300, 'Enjoy your new QR', undefined)
+      );
+
+      // Append to DOM immediately after creation if ref exists
+      if (qrRef.current) {
+        qrRef.current.innerHTML = ''; // Clean start
+        qrCodeInstance.current.append(qrRef.current);
+        setIsMounted(true);
+      }
+    }
+  }, [qrScriptStatus]);
+
+  // 2. UPDATE EFFECT (Runs on Prop Changes)
+  useEffect(() => {
+    if (!qrCodeInstance.current || !isMounted) return;
+
+    const updateQr = async () => {
+        const effectiveUrl = debouncedUrl || 'Enjoy your new QR';
+        let activeLogoUrl = undefined;
+
+        // Logic for logo selection
+        if (useFavicon && !logoUrl && effectiveUrl && effectiveUrl.includes('http')) {
+            try {
+                if (effectiveUrl.includes('.')) {
+                    const domain = new URL(effectiveUrl).hostname;
+                    activeLogoUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+                }
+            } catch (e) {
+                // ignore invalid urls
+            }
+        } else if (logoUrl && logoUrl.startsWith('http')) {
+            activeLogoUrl = logoUrl;
+        }
+
+        // Convert to Base64 for embedding (solves SVG missing image issue)
+        const base64Image = activeLogoUrl ? await convertImageToBase64(activeLogoUrl) : undefined;
+
+        // Safely update options
+        qrCodeInstance.current.update(
+            getQrOptions(300, 300, effectiveUrl, base64Image)
+        );
+    };
+
+    updateQr();
+
+  }, [debouncedUrl, logoUrl, useFavicon, dotType, dotColor, bgColor, cornerType, cornerColor, isMounted]);
+
+  // 3. FAILSAFE: Re-attach if DOM is lost
+  useEffect(() => {
+    if (qrCodeInstance.current && qrRef.current && isMounted) {
+        if (qrRef.current.innerHTML === '') {
+            qrCodeInstance.current.append(qrRef.current);
+        }
+    }
+  });
+
+  const handleManualRefresh = () => {
+    if (qrCodeInstance.current && qrRef.current) {
+        qrRef.current.innerHTML = '';
+        qrCodeInstance.current.append(qrRef.current);
+        // Force update parameters again
+        const effectiveUrl = debouncedUrl || 'Enjoy your new QR';
+        qrCodeInstance.current.update({ data: effectiveUrl });
+    }
+  };
+
+  const handleDownload = async (format) => {
+    if (qrScriptStatus !== 'ready') return;
+    setIsDownloading(true);
+
+    // Prepare data
+    const effectiveUrl = debouncedUrl || 'Enjoy your new QR';
+    let activeLogoUrl = undefined;
+    if (useFavicon && !logoUrl && effectiveUrl && effectiveUrl.includes('http')) {
+         try {
+             const domain = new URL(effectiveUrl).hostname;
+             activeLogoUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+         } catch(e) {}
+    } else if (logoUrl) {
+        activeLogoUrl = logoUrl;
+    }
+
+    const base64Image = await convertImageToBase64(activeLogoUrl);
+
+    // Create a NEW High-Res instance just for download
+    // 2000px width ensures 'dots' are crisp and not smudged
+    // @ts-ignore
+    const downloadInstance = new window.QRCodeStyling(
+        getQrOptions(2000, 2000, effectiveUrl, base64Image)
+    );
+
+    try {
+        if (format === 'pdf') {
+            if (pdfScriptStatus !== 'ready') {
+                alert("PDF Library is still loading...");
+                setIsDownloading(false);
+                return;
+            }
+            
+            // Get raw PNG data from high-res instance
+            const blob = await downloadInstance.getRawData('png');
+            const reader = new FileReader();
+            reader.readAsDataURL(blob);
+            reader.onloadend = () => {
+                const base64data = reader.result;
+                // @ts-ignore
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                doc.text("Scan this QR Code", 105, 40, { align: "center" });
+                doc.addImage(base64data, 'PNG', 55, 50, 100, 100); 
+                doc.text(debouncedUrl ? debouncedUrl.substring(0, 50) + (debouncedUrl.length > 50 ? '...' : '') : "Enjoy your new QR", 105, 160, { align: "center", maxWidth: 180 });
+                doc.save("qrcode.pdf");
+                setIsDownloading(false);
+            };
+        } else {
+            // Standard Download (PNG/SVG) using High-Res instance
+            await downloadInstance.download({ name: "qrcode", extension: format });
+            setIsDownloading(false);
+        }
+    } catch (err) {
+        console.error("Download failed", err);
+        alert("Download failed. If using a custom logo, ensure it allows CORS.");
+        setIsDownloading(false);
+    }
+  };
+
+  const presetColors = [
+    { name: 'Black', hex: '#000000' },
+    { name: 'Blue', hex: '#2563EB' },
+    { name: 'Purple', hex: '#7C3AED' },
+    { name: 'Pink', hex: '#DB2777' },
+    { name: 'Teal', hex: '#0D9488' },
+    { name: 'Orange', hex: '#EA580C' },
+  ];
+
+  return (
+    <div className="min-h-screen bg-gray-50 text-gray-800 p-4 md:p-8 font-sans">
+      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        {/* Header */}
+        <div className="lg:col-span-12 mb-4 text-center">
+          <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 mb-2">
+            MHG QR Code Studio
+          </h1>
+          <p className="text-gray-500">Generate stylish QR codes with custom logos and images</p>
+        </div>
+
+        {/* Left Column: Controls */}
+        <div className="lg:col-span-5 space-y-6">
+          
+          {/* Link Input Section */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <h2 className="text-lg font-semibold flex items-center gap-2 mb-4 text-gray-700">
+              <Link size={20} className="text-blue-500" />
+              Content
+            </h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">Target Website URL</label>
+                <input
+                  type="text"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  placeholder="https://example.com"
+                  className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Logo Section */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <h2 className="text-lg font-semibold flex items-center gap-2 mb-4 text-gray-700">
+              <ImageIcon size={20} className="text-purple-500" />
+              Center Logo
+            </h2>
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-2">
+                <input
+                  type="checkbox"
+                  id="useFavicon"
+                  checked={useFavicon}
+                  onChange={(e) => setUseFavicon(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                />
+                <label htmlFor="useFavicon" className="text-sm text-gray-600 select-none cursor-pointer">
+                  Auto-fetch website logo (Favicon)
+                </label>
+              </div>
+              
+              <div className={`transition-opacity duration-300 ${useFavicon ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+                <label className="block text-sm font-medium text-gray-600 mb-1">Or custom Image URL</label>
+                <input
+                  type="text"
+                  value={logoUrl}
+                  onChange={(e) => {
+                    setLogoUrl(e.target.value);
+                    if (e.target.value) setUseFavicon(false);
+                  }}
+                  placeholder="https://imgur.com/..."
+                  className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none transition-all"
+                />
+                <p className="text-xs text-gray-400 mt-1">Note: Image URL must allow CORS access.</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Style Controls */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <h2 className="text-lg font-semibold flex items-center gap-2 mb-4 text-gray-700">
+              <Settings size={20} className="text-orange-500" />
+              Customization
+            </h2>
+            
+            <div className="space-y-6">
+              {/* Dot Style */}
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Pattern Style</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {['dots', 'rounded', 'square', 'classy', 'classy-rounded', 'extra-rounded'].map((type) => (
+                    <button
+                      key={type}
+                      onClick={() => setDotType(type)}
+                      className={`px-2 py-2 text-xs rounded-md border capitalize transition-all ${
+                        dotType === type 
+                          ? 'bg-blue-50 border-blue-500 text-blue-700 font-medium' 
+                          : 'bg-gray-50 border-transparent text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      {type.replace('-', ' ')}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Corner Style */}
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Corner Style</label>
+                <div className="flex gap-2">
+                  {['square', 'extra-rounded', 'dot'].map((type) => (
+                    <button
+                      key={type}
+                      onClick={() => setCornerType(type)}
+                      className={`flex-1 px-2 py-2 text-xs rounded-md border capitalize transition-all ${
+                        cornerType === type 
+                          ? 'bg-purple-50 border-purple-500 text-purple-700 font-medium' 
+                          : 'bg-gray-50 border-transparent text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      {type.replace('-', ' ')}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Colors */}
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Primary Color</label>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {presetColors.map((color) => (
+                    <button
+                      key={color.name}
+                      onClick={() => {
+                        setDotColor(color.hex);
+                        setCornerColor(color.hex);
+                      }}
+                      className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${
+                        dotColor === color.hex ? 'border-gray-400 ring-2 ring-offset-2 ring-gray-200' : 'border-transparent'
+                      }`}
+                      style={{ backgroundColor: color.hex }}
+                      title={color.name}
+                    />
+                  ))}
+                  <div className="relative">
+                    <input 
+                      type="color" 
+                      value={dotColor}
+                      onChange={(e) => {
+                         setDotColor(e.target.value);
+                         setCornerColor(e.target.value);
+                      }}
+                      className="w-8 h-8 rounded-full overflow-hidden border-0 p-0 cursor-pointer"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column: Preview & Download */}
+        <div className="lg:col-span-7 flex flex-col">
+          <div className="sticky top-8 space-y-6">
+            
+            {/* Preview Card */}
+            <div className="bg-white p-8 rounded-3xl shadow-xl border border-gray-100 flex flex-col items-center justify-center min-h-[500px] relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"></div>
+              
+              <div className="absolute top-4 right-4 z-10">
+                <button 
+                    onClick={handleManualRefresh}
+                    className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                    title="Refresh Preview"
+                >
+                    <RefreshCw size={20} />
+                </button>
+              </div>
+
+              {qrScriptStatus === 'loading' && (
+                <div className="text-center animate-pulse">
+                  <RefreshCw className="w-8 h-8 text-blue-500 animate-spin mx-auto mb-2" />
+                  <p className="text-gray-500">Loading QR Engine...</p>
+                </div>
+              )}
+
+              {/* The QR Code Container */}
+              <div 
+                ref={qrRef} 
+                className={`qr-container bg-white p-4 rounded-xl shadow-inner border border-gray-50 transition-all duration-300 transform hover:scale-[1.02] flex items-center justify-center min-h-[300px] min-w-[300px] ${isDownloading ? 'opacity-50' : 'opacity-100'}`}
+              >
+                {/* QR Code will be appended here */}
+              </div>
+
+              <div className="mt-8 text-center max-w-md">
+                <p className="text-sm text-gray-400 break-all font-mono mb-2">{url}</p>
+                <div className="inline-block px-3 py-1 bg-green-50 text-green-700 text-xs font-medium rounded-full">
+                  {isDownloading ? 'Generating High-Res File...' : 'Ready to scan'}
+                </div>
+              </div>
+            </div>
+
+            {/* Download Options */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <button
+                disabled={isDownloading}
+                onClick={() => handleDownload('png')}
+                className="flex items-center justify-center gap-2 bg-gray-900 hover:bg-gray-800 text-white px-6 py-4 rounded-xl transition-all shadow-lg shadow-gray-200 active:scale-95 group disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ImageDownloaderIcon />
+                <div className="text-left">
+                  <div className="text-xs text-gray-400 font-medium">Download as</div>
+                  <div className="font-bold">PNG</div>
+                </div>
+              </button>
+
+              <button
+                disabled={isDownloading}
+                onClick={() => handleDownload('svg')}
+                className="flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-gray-900 border border-gray-200 px-6 py-4 rounded-xl transition-all shadow-lg shadow-gray-100 active:scale-95 group disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <VectorIcon />
+                <div className="text-left">
+                  <div className="text-xs text-gray-500 font-medium">Download as</div>
+                  <div className="font-bold">SVG</div>
+                </div>
+              </button>
+
+              <button
+                disabled={isDownloading}
+                onClick={() => handleDownload('pdf')}
+                className="flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-900 border border-red-100 px-6 py-4 rounded-xl transition-all shadow-lg shadow-red-50 active:scale-95 group disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <PdfIcon />
+                <div className="text-left">
+                  <div className="text-xs text-red-400 font-medium">Download as</div>
+                  <div className="font-bold">PDF</div>
+                </div>
+              </button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Simple Icon Components for the download buttons
+const ImageDownloaderIcon = () => (
+  <svg className="w-8 h-8 text-white opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+  </svg>
+);
+
+const VectorIcon = () => (
+  <svg className="w-8 h-8 text-gray-700 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+  </svg>
+);
+
+const PdfIcon = () => (
+  <svg className="w-8 h-8 text-red-600 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+  </svg>
+);
